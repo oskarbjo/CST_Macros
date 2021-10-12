@@ -1,56 +1,67 @@
 ' Import polygons
-
+Option Explicit
 Sub Main ()
 
-Dim filePath As String
-Dim fileName As String
-Dim fileContents As String
-Dim count As Integer
-Dim StringArr() As String
-Dim loopCounter As Integer
-filePath = "C:\Users\objoerkqvist\OneDrive - ETH Zurich\Documents\MATLAB\Coil design\polygon_export\"
-fileName = filePath + "prototype1_v3_polygon2.txt"
+	Dim filePath As String
+	Dim fileName As String
+	Dim fileContents As String
+	Dim count As Integer
+	Dim StringArr() As String
+	Dim loopCounter As Integer
+	Dim numFiles As Variant
+	Dim fileCounter As Integer
 
-fileContents = ReadDataFromFile(fileName)
-count=CInt(UBound(Split(fileContents)))
-ReDim StringArr(count)
-StringArr = Split(fileContents)
+	Dim strDir As String
+    Dim fso As Object
+    Dim objFiles As Object
+    Dim OBJ As Object
+    Dim lngFileCount As Long
 
-loopCounter = 2
-With Polygon
-	.Reset
-	.Name "Polygon1"
-	.Curve "curve1"
-	.Point CStr(CDbl(StringArr(0))), CStr(CDbl(StringArr(1)))
-	While(loopCounter < (count + 1)/2)
-     .LineTo CStr(CDbl(StringArr(loopCounter))), CStr(CDbl(StringArr(loopCounter+1)))
-     loopCounter = loopCounter + 2
-     Wend
-	.Create
-End With
+    Dim DataFile As Long, DataStringLength As Long
+
+	'This could be done as a function but for some reason gives an error when updating history list when done in that way
+	filePath = "C:\Users\objoerkqvist\OneDrive - ETH Zurich\Documents\MATLAB\Coil design\polygon_export\"
+	Set fso = CreateObject("Scripting.FileSystemObject")
+    Set objFiles = fso.GetFolder(filePath).Files
+    lngFileCount = objFiles.Count
+    numFiles = CInt(lngFileCount)
+	Debug.Print(numFiles)
 
 
+	For fileCounter = 1 To numFiles
+	fileName = filePath + "polygon" + CStr(fileCounter) + ".txt"
+	DataFile = FreeFile()
+	Open fileName For Input As #DataFile
+	fileContents = Input(LOF(DataFile), DataFile)
+	Close DataFile
+	' Replace different line breaks with vbNewLine, order is important
+	fileContents = Replace(fileContents, vbCrLf, vbLf)
+	fileContents = Replace(fileContents, vbLf, vbCr)
+	fileContents = Replace(fileContents, vbCr, vbNewLine)
+	' In case of multiple line breaks: Remove double line breaks
+	DataStringLength = -1
+	While (Len(fileContents)<>DataStringLength)
+		DataStringLength = Len(fileContents)
+		fileContents = Replace(fileContents, vbNewLine+vbNewLine, vbNewLine) ' remove double line breaks
+		fileContents = Replace(fileContents, "  ", " ") ' remove multiple spaces
+	Wend
+	count=CInt(UBound(Split(fileContents," ")))
+	ReDim StringArr(count)
+	StringArr = Split(fileContents)
+
+	loopCounter = 2
+	With Polygon
+		.Reset
+		.Name "Polygon" + CStr(fileCounter)
+		.Curve "curve1"
+		.Point CStr(CDbl(StringArr(0))), CStr(CDbl(StringArr(1)))
+		While(loopCounter < count-1)
+	     .LineTo CStr(CDbl(StringArr(loopCounter))), CStr(CDbl(StringArr(loopCounter+1)))
+	     loopCounter = loopCounter + 2
+	     Wend
+		.Create
+	End With
+	Next fileCounter
 
 
 End Sub
-
-Function ReadDataFromFile(DataFileName As String) As String
-	Dim DataFile As Long, DataStringLength As Long
-	DataFile = FreeFile()
-	Open DataFileName For Input As #DataFile
-	ReadDataFromFile = Input(LOF(DataFile), DataFile)
-	Close DataFile
-	' Replace different line breaks with vbNewLine, order is important
-	ReadDataFromFile = Replace(ReadDataFromFile, vbCrLf, vbLf)
-	ReadDataFromFile = Replace(ReadDataFromFile, vbLf, vbCr)
-	ReadDataFromFile = Replace(ReadDataFromFile, vbCr, vbNewLine)
-	' In case of multiple line breaks: Remove double line breaks
-	DataStringLength = -1
-	While (Len(ReadDataFromFile)<>DataStringLength)
-		DataStringLength = Len(ReadDataFromFile)
-		ReadDataFromFile = Replace(ReadDataFromFile, vbNewLine+vbNewLine, vbNewLine) ' remove double line breaks
-		ReadDataFromFile = Replace(ReadDataFromFile, "  ", " ") ' remove multiple spaces
-	Wend
-
-End Function
-
