@@ -1,0 +1,131 @@
+' Import polygons
+Option Explicit
+Sub Main ()
+
+	Dim filePathCapPoints As String
+	Dim filePathWirePoints As String
+	Dim fileContents As String
+	Dim count As Integer
+	Dim StringArr() As String
+	Dim loopCounter As Integer
+	Dim numFiles As Variant
+	Dim counter As Integer
+
+	Dim strDir As String
+    Dim fso As Object
+    Dim objFiles As Object
+    Dim OBJ As Object
+    Dim lngFileCount As Long
+
+    Dim DataFile As Long, DataStringLength As Long
+
+	'This could be done as a function but for some reason gives an error when updating history list when done in that way
+	filePathCapPoints = "C:\Users\objoerkqvist\OneDrive - ETH Zurich\Documents\MATLAB\Coil design\wire_cap_points\capPoints.txt"
+	filePathWirePoints = "C:\Users\objoerkqvist\OneDrive - ETH Zurich\Documents\MATLAB\Coil design\wire_cap_points\wirePoints.txt"
+
+'''''''''Caps''''''''
+	DataFile = FreeFile()
+	Open filePathCapPoints For Input As #DataFile
+	fileContents = Input(LOF(DataFile), DataFile)
+	Close DataFile
+	' Replace different line breaks with vbNewLine, order is important
+	fileContents = Replace(fileContents, vbCrLf, vbLf)
+	fileContents = Replace(fileContents, vbLf, vbCr)
+	fileContents = Replace(fileContents, vbCr, vbNewLine)
+	' In case of multiple line breaks: Remove double line breaks
+	DataStringLength = -1
+	While (Len(fileContents)<>DataStringLength)
+		DataStringLength = Len(fileContents)
+		fileContents = Replace(fileContents, vbNewLine+vbNewLine, vbNewLine) ' remove double line breaks
+		fileContents = Replace(fileContents, "  ", " ") ' remove multiple spaces
+	Wend
+	count=CInt(UBound(Split(fileContents," ")))
+	ReDim StringArr(count)
+	StringArr = Split(fileContents)
+
+
+	For counter = 1 To count/4
+
+
+	With LumpedElement
+     .Reset
+     .SetName "element" + CStr(counter)
+     .Folder "Folder1"
+     .SetType "RLCSerial"
+     .SetR "0"
+     .SetL "0"
+     .SetC "C" + CStr(-Abs(counter-count/8-0.5)+count/8+0.5)
+     .SetGs "0"
+     .SetI0 "1e-14"
+     .SetT "300"
+     .SetMonitor "True"
+     .SetRadius "0.0"
+     .CircuitFileName ""
+     .CircuitId "1"
+     .UseCopyOnly "True"
+     .UseRelativePath "False"
+     .SetP1 "False", CStr(CDbl(StringArr(counter*4-4))), CStr(CDbl(StringArr(counter*4-3))), "mainCoil_H+mainCoil_WG/2+GP_gap"
+     .SetP2 "False", CStr(CDbl(StringArr(counter*4-2))), CStr(CDbl(StringArr(counter*4-1))), "mainCoil_H+mainCoil_WG/2+GP_gap"
+     .SetInvert "False"
+     .Wire ""
+     .Position "end1"
+     .Create
+End With
+
+
+Next counter
+
+
+
+'''''''''Wires''''''''
+	DataFile = FreeFile()
+	Open filePathWirePoints For Input As #DataFile
+	fileContents = Input(LOF(DataFile), DataFile)
+	Close DataFile
+	' Replace different line breaks with vbNewLine, order is important
+	fileContents = Replace(fileContents, vbCrLf, vbLf)
+	fileContents = Replace(fileContents, vbLf, vbCr)
+	fileContents = Replace(fileContents, vbCr, vbNewLine)
+	' In case of multiple line breaks: Remove double line breaks
+	DataStringLength = -1
+	While (Len(fileContents)<>DataStringLength)
+		DataStringLength = Len(fileContents)
+		fileContents = Replace(fileContents, vbNewLine+vbNewLine, vbNewLine) ' remove double line breaks
+		fileContents = Replace(fileContents, "  ", " ") ' remove multiple spaces
+	Wend
+	count=CInt(UBound(Split(fileContents," ")))
+	ReDim StringArr(count)
+	StringArr = Split(fileContents)
+
+
+	For counter = 1 To count/4
+
+	Dim height As Double
+	If counter Mod 2 = 0 Then
+		height = -0.1
+	Else
+		height = -0.3
+	End If
+
+	With Wire
+     .Reset
+     .Name "wire" + CStr(counter)
+     .Folder "Folder1"
+     .Type "BondWire"
+     .Height CStr(height)
+     .Radius "0.0"
+     .Point1 CStr(CDbl(StringArr(counter*4-4))), CStr(CDbl(StringArr(counter*4-3))), "mainCoil_H+mainCoil_WG/2+GP_gap", "False"
+     .Point2 CStr(CDbl(StringArr(counter*4-2))), CStr(CDbl(StringArr(counter*4-1))),  "mainCoil_H+mainCoil_WG/2+GP_gap", "False"
+     .BondWireType "Spline"
+     .Alpha "75"
+     .Beta "35"
+     .RelativeCenterPosition "0.5"
+     .Material "PEC"
+     .SolidWireModel "False"
+     .Termination "Extended"
+     .Add
+End With
+
+Next counter
+
+End Sub
